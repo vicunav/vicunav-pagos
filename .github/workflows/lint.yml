@@ -1,4 +1,4 @@
-name: Lint de PHP
+name: Validación
 
 on:
   pull_request:
@@ -8,12 +8,35 @@ permissions:
 
 jobs:
   estandares-php:
-    name: Estándares de código PHP
+    name: PHP, WPCS y PHPUnit
     runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: wordpress_test
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --host=127.0.0.1 --user=root --password=root"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      WP_TESTS_DB_NAME: wordpress_test
+      WP_TESTS_DB_USER: root
+      WP_TESTS_DB_PASSWORD: root
+      WP_TESTS_DB_HOST: 127.0.0.1
+      WP_TESTS_TABLE_PREFIX: wptests_vicu_pagos_
 
     steps:
       - name: Descargar el repositorio
         uses: actions/checkout@v7
+        with:
+          submodules: recursive
 
       - name: Configurar PHP y Composer
         uses: shivammathur/setup-php@v2
@@ -22,30 +45,8 @@ jobs:
           tools: composer:v2
           coverage: none
 
-      - name: Instalar PHP_CodeSniffer y WordPress Coding Standards
-        shell: bash
-        run: |
-          composer global config \
-            allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
-          composer global require --dev --no-interaction --no-progress \
-            "wp-coding-standards/wpcs:^3.0" \
-            "dealerdirect/phpcodesniffer-composer-installer:^1.0"
+      - name: Instalar dependencias
+        run: composer install --no-interaction --no-progress --prefer-dist
 
-      - name: Analizar archivos PHP
-        shell: bash
-        run: |
-          mapfile -d '' archivos_php < <(
-            find . -type f -name '*.php' \
-              -not -path './.git/*' \
-              -not -path './vendor/*' \
-              -not -path './node_modules/*' \
-              -print0
-          )
-
-          if (( ${#archivos_php[@]} == 0 )); then
-            echo "No hay archivos PHP para analizar."
-            exit 0
-          fi
-
-          phpcs_bin="$(composer global config bin-dir --absolute)/phpcs"
-          "$phpcs_bin" --standard=WordPress "${archivos_php[@]}"
+      - name: Validar
+        run: composer check

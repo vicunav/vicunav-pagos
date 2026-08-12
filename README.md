@@ -1,51 +1,75 @@
-# Vicunav Repository Template
+# Vicunav Pagos
 
-Reusable starting point for repositories in the Vicunav ecosystem. Creating a
-repository from this template copies its files and directory structure into a new,
-independent repository without treating it as a fork.
+Independent payment engine for the Vicunav WordPress ecosystem.
 
-## Included foundation
+## Status
 
-- `AGENTS.md` with placeholders for repository-specific instructions.
-- `CONTRIBUTING.md` with the atomic issue and squash-merge workflow.
-- `docs/standards/` pinned to the shared Vicunav standards.
-- A structured atomic-task issue form.
-- PHP linting with WordPress Coding Standards in GitHub Actions.
-- GPL-2.0-or-later licensing suitable for WordPress themes and plugins.
+The initial 0.1.0 foundation provides an installable plugin, the
+`vicu_payment_req` post type, protected administrative REST access, and a versioned
+contract for external references and payment request metadata.
 
-## Creating a repository from this template
+State transitions, lifecycle events, expiration, idempotent creation, and the manual
+payment provider are intentionally reserved for later atomic changes.
 
-1. Open this template repository on GitHub.
-2. Select **Use this template** and then **Create a new repository**.
-3. Choose the owner, repository name, description, and visibility.
-4. Select **Create repository**.
-5. Clone the new repository, including its submodules:
+## Responsibilities
 
-   ```bash
-   git clone --recurse-submodules https://github.com/OWNER/REPOSITORY.git
-   cd REPOSITORY
-   ```
+`vicunav-pagos` owns payment requests and the payment lifecycle without knowing the
+internal model of a restaurant order, hotel reservation, or future vertical. Each
+request references its source through a stable type and identifier pair.
 
-If the repository was cloned without submodules, initialize them afterward:
+The repository owns the `Vicu\Pagos` PHP namespace. Its public boundary, persistence
+rules, capabilities, and REST behavior are defined in
+[`docs/contrato-publico.md`](docs/contrato-publico.md).
+
+## Requirements
+
+- WordPress 6.6 or later.
+- PHP 8.1 or later.
+- [`vicunav-plugin-core`](https://github.com/vicunav/vicunav-plugin-core) 0.1.0 or
+  later within contract major 1.
+
+Install both plugins and activate **Vicunav Plugin Core** before **Vicunav Pagos**.
+
+## Initial capabilities
+
+- Private `vicu_payment_req` post type with dedicated capabilities.
+- Administrative REST collection at `/wp-json/wp/v2/vicu-payment-requests`.
+- External source type and identifier metadata.
+- Integer minor-unit amount and uppercase ISO 4217 currency metadata.
+- Capabilities granted to administrators on activation.
+
+The WordPress REST endpoint is an administrative interface, not the integration API
+for business verticals. Consumers must use the public services and events introduced
+by later contract versions.
+
+## Boundaries
+
+- It does not contain presentation, templates, patterns, or theme styling.
+- It does not contain order, reservation, room, menu, or inventory logic.
+- It does not read another plugin's database or post metadata.
+- It does not require ACF and does not implement banking provider APIs in this phase.
+
+## Development
+
+Initialize shared standards and install dependencies:
 
 ```bash
 git submodule update --init --recursive
+composer install
 ```
 
-## Required customization
+Run the complete validation suite:
 
-After creating the repository:
+```bash
+composer check
+```
 
-1. Replace this README with project-specific documentation in English.
-2. Replace every placeholder in `AGENTS.md` and document the actual validation
-   commands.
-3. Confirm that the standards submodule points to the intended commit.
-4. Add the package bootstrap, tests, and tooling required by its contract.
-5. Configure branch protection and allow only squash-merge pull requests into `main`.
-6. Verify that no `{{PLACEHOLDER}}` values remain in versioned files.
+The integration suite requires an isolated MySQL database. See
+[`docs/pruebas.md`](docs/pruebas.md).
 
-Do not add product-specific files to this template merely because one consumer needs
-them. Shared repository scaffolding belongs here; package behavior belongs in the new
-repository.
+Contributions follow an atomic issue, branch, pull request, and squash-merge workflow.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
-For more information, see the GitHub guide on [creating a repository from a template](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template).
+## License
+
+This project is licensed under the [GPL-2.0-or-later](LICENSE) license.
