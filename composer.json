@@ -1,0 +1,56 @@
+{
+  "name": "vicunav/vicunav-pagos",
+  "description": "Independent payment engine for the Vicunav WordPress ecosystem.",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+  "repositories": [
+    {
+      "type": "package",
+      "package": {
+        "name": "vicunav/vicunav-plugin-core",
+        "version": "0.1.0",
+        "type": "library",
+        "dist": {
+          "url": "https://github.com/vicunav/vicunav-plugin-core/archive/refs/tags/v0.1.0.zip",
+          "type": "zip",
+          "reference": "12870b0d5e297d715c985037e76898067a749909"
+        }
+      }
+    }
+  ],
+  "require": {
+    "php": ">=8.1"
+  },
+  "require-dev": {
+    "dealerdirect/phpcodesniffer-composer-installer": "^1.1",
+    "johnpbloch/wordpress-core": "6.9.*",
+    "johnpbloch/wordpress-core-installer": "^2.0",
+    "php-parallel-lint/php-parallel-lint": "^1.4",
+    "phpcompatibility/phpcompatibility-wp": "^2.1",
+    "phpunit/phpunit": "^9.6",
+    "vicunav/vicunav-plugin-core": "0.1.0",
+    "wp-coding-standards/wpcs": "^3.2",
+    "wp-phpunit/wp-phpunit": "6.9.*",
+    "yoast/wp-test-utils": "^1.2"
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "johnpbloch/wordpress-core-installer": true
+    },
+    "sort-packages": true
+  },
+  "extra": {
+    "wordpress-install-dir": "vendor/wordpress"
+  },
+  "scripts": {
+    "lint": "parallel-lint --exclude vendor .",
+    "phpcs": "phpcs",
+    "test": "phpunit",
+    "check": [
+      "@lint",
+      "@phpcs",
+      "@test"
+    ]
+  }
+}
