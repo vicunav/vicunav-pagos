@@ -4,21 +4,21 @@ Independent payment engine for the Vicunav WordPress ecosystem.
 
 ## Status
 
-The initial 0.1.0 foundation provides an installable plugin, the
-`vicu_payment_req` post type, protected administrative REST access, and a versioned
-contract for external references and payment request metadata.
+Version 0.2.0 provides an installable payment lifecycle with idempotent creation,
+explicit reference-collision errors, concurrency-safe state transitions, repeatable
+expiration, and versioned public events.
 
-State transitions, lifecycle events, expiration, idempotent creation, and the manual
-payment provider are intentionally reserved for later atomic changes.
+The manual provider, banking integrations, checkout, proof-of-payment UI, and
+restaurant or reservation logic remain intentionally out of scope.
 
 ## Responsibilities
 
-`vicunav-pagos` owns payment requests and the payment lifecycle without knowing the
-internal model of a restaurant order, hotel reservation, or future vertical. Each
-request references its source through a stable type and identifier pair.
+`vicunav-pagos` owns payment requests and their lifecycle without knowing the internal
+model of a restaurant order, hotel reservation, or future vertical. Each request
+references its source through a stable type and opaque identifier pair.
 
-The repository owns the `Vicu\Pagos` PHP namespace. Its public boundary, persistence
-rules, capabilities, and REST behavior are defined in
+The repository owns the `Vicu\Pagos` PHP namespace. Its public services, persistence
+rules, errors, capabilities, and events are defined in
 [`docs/contrato-publico.md`](docs/contrato-publico.md).
 
 ## Requirements
@@ -30,24 +30,29 @@ rules, capabilities, and REST behavior are defined in
 
 Install both plugins and activate **Vicunav Plugin Core** before **Vicunav Pagos**.
 
-## Initial capabilities
+## Public lifecycle
 
-- Private `vicu_payment_req` post type with dedicated capabilities.
-- Administrative REST collection at `/wp-json/wp/v2/vicu-payment-requests`.
-- External source type and identifier metadata.
-- Integer minor-unit amount and uppercase ISO 4217 currency metadata.
-- Capabilities granted to administrators on activation.
+- `Vicu\Pagos\PaymentRequests::create()` creates or returns a request by external
+  reference.
+- `Vicu\Pagos\PaymentRequests::get()` returns a stable public array without exposing
+  post meta or internal tables.
+- `Vicu\Pagos\PaymentRequests::transition()` applies allowed state changes with an
+  optional expected revision.
+- `Vicu\Pagos\PaymentRequests::expire()` and `expire_due()` provide safe, repeatable
+  expiration.
+- Creation, confirmation, rejection, and expiration hooks publish payload schema
+  `1.0.0` only after persistence commits.
 
-The WordPress REST endpoint is an administrative interface, not the integration API
-for business verticals. Consumers must use the public services and events introduced
-by later contract versions.
+The private `vicu_payment_req` post type and
+`/wp-json/wp/v2/vicu-payment-requests` collection remain protected administrative
+interfaces. Business plugins use the public PHP service and events instead.
 
 ## Boundaries
 
 - It does not contain presentation, templates, patterns, or theme styling.
 - It does not contain order, reservation, room, menu, or inventory logic.
 - It does not read another plugin's database or post metadata.
-- It does not require ACF and does not implement banking provider APIs in this phase.
+- It does not require ACF or implement payment-provider APIs in this phase.
 
 ## Development
 
@@ -64,7 +69,8 @@ Run the complete validation suite:
 composer check
 ```
 
-The integration suite requires an isolated MySQL database. See
+The integration suite requires an isolated MySQL database. The E2E script additionally
+loads an active LocalWP site and exercises the real plugin lifecycle. See
 [`docs/pruebas.md`](docs/pruebas.md).
 
 Contributions follow an atomic issue, branch, pull request, and squash-merge workflow.

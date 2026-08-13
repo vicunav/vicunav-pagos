@@ -46,3 +46,21 @@ git submodule status
 La activación real se verifica en WordPress con `vicunav-plugin-core` activo y el
 socket correcto. Un error HTML de conexión a base de datos cuenta como fallo aunque el
 proceso PHP termine con código cero.
+
+## E2E en WordPress real
+
+El script `tests/e2e/payment-lifecycle.php` debe ejecutarse contra un sitio LocalWP
+descartable con ambos plugins enlazados y activos. Crea una solicitud efímera, repite
+la creación, transiciona hasta `confirmado`, comprueba los hooks versionados, prueba
+desactivación/reactivación y elimina los datos que creó.
+
+```sh
+export VICU_PAGOS_E2E_WP_LOAD='/ruta/al/sitio/app/public/wp-load.php'
+php \
+  -d mysqli.default_socket='/ruta/local/run/id/mysql/mysqld.sock' \
+  -d pdo_mysql.default_socket='/ruta/local/run/id/mysql/mysqld.sock' \
+  tests/e2e/payment-lifecycle.php
+```
+
+El socket debe corresponder al sitio identificado mediante `wp_options.home` o
+`siteurl`. El script nunca se ejecuta contra producción.
