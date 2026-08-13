@@ -25,6 +25,8 @@ final class PaymentRequest extends PostType {
 
 	public const META_CURRENCY = 'vicu_currency';
 
+	public const META_PROVIDER = 'vicu_payment_provider';
+
 	public const META_STATE = 'vicu_payment_state';
 
 	public const META_REVISION = 'vicu_payment_revision';
@@ -142,6 +144,19 @@ final class PaymentRequest extends PostType {
 
 		register_post_meta(
 			self::SLUG,
+			self::META_PROVIDER,
+			self::meta_args(
+				'string',
+				'sanitize_key',
+				array(
+					'type' => 'string',
+					'enum' => array( 'manual' ),
+				)
+			)
+		);
+
+		register_post_meta(
+			self::SLUG,
 			self::META_STATE,
 			self::meta_args(
 				'string',
@@ -191,6 +206,7 @@ final class PaymentRequest extends PostType {
 			self::META_EXTERNAL_ID,
 			self::META_AMOUNT_MINOR,
 			self::META_CURRENCY,
+			self::META_PROVIDER,
 			self::META_STATE,
 			self::META_REVISION,
 			self::META_EXPIRES_AT,

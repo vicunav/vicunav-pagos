@@ -36,6 +36,8 @@ require $vicu_pagos_tests_dir . '/includes/bootstrap.php';
 function vicu_pagos_reset_requests(): void {
 	global $wpdb;
 
+	delete_option( 'vicu_pagos_manual_enabled' );
+
 	$post_ids = get_posts(
 		array(
 			'post_type'      => 'vicu_payment_req',
@@ -49,9 +51,12 @@ function vicu_pagos_reset_requests(): void {
 		wp_delete_post( $post_id, true );
 	}
 
-	$table = \Vicu\Pagos\PaymentRequestRepository::table_name();
+	$request_table    = \Vicu\Pagos\PaymentRequestRepository::table_name();
+	$submission_table = \Vicu\Pagos\ManualSubmissionRepository::table_name();
 
-	// La tabla pertenece a la base aislada y su nombre proviene del prefijo de pruebas.
+	// Las tablas pertenecen a la base aislada y sus nombres provienen del prefijo de pruebas.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-	$wpdb->query( "TRUNCATE TABLE {$table}" );
+	$wpdb->query( "TRUNCATE TABLE {$submission_table}" );
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	$wpdb->query( "TRUNCATE TABLE {$request_table}" );
 }

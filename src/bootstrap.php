@@ -124,6 +124,7 @@ function bootstrap(): void {
  */
 function delete_payment_request_storage( int $post_id, \WP_Post $post ): void {
 	if ( PaymentRequest::SLUG === $post->post_type ) {
+		ManualSubmissionRepository::delete_by_request_id( $post_id );
 		PaymentRequestRepository::delete_by_post_id( $post_id );
 	}
 }

@@ -29,9 +29,12 @@ Este repositorio no es propietario de:
 Los verticales entregan una referencia externa y reaccionan a eventos públicos. Nunca
 leen post meta, tablas o clases internas de pagos.
 
-## Estado de PAGOS-02
+## Estado de PAGOS-03
 
-PAGOS-02 implementa el bootstrap, el CPT administrativo, la persistencia versionada,
-las capabilities, la creación idempotente, la máquina de estados atómica, la
-expiración repetible y los eventos públicos versionados. El proveedor manual, el
-checkout y cualquier presentación permanecen fuera de esta fase.
+PAGOS-03 añade el proveedor manual v1 detrás de la superficie pública del motor. Su
+configuración solo habilita o deshabilita el proveedor. Una entrega conserva una
+referencia opaca de comprobante, una identidad idempotente interna y la revisión de
+la solicitud, y transiciona atómicamente a `comprobante_subido`.
+
+Las integraciones bancarias, cuentas e instrucciones de pago, checkout, archivos,
+comprobantes visuales y cualquier presentación permanecen fuera de esta fase.

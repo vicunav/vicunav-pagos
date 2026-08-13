@@ -160,11 +160,12 @@ final class PaymentRequestRepository {
 	/**
 	 * Aplica compare-and-swap sobre estado y revisión.
 	 *
-	 * @param int    $row_id       ID interno de fila.
-	 * @param string $from          Estado esperado.
-	 * @param string $to            Estado nuevo.
-	 * @param int    $revision      Revisión esperada.
-	 * @param string $updated_at    Fecha UTC de actualización.
+	 * @param int         $row_id       ID interno de fila.
+	 * @param string      $from          Estado esperado.
+	 * @param string      $to            Estado nuevo.
+	 * @param int         $revision      Revisión esperada.
+	 * @param string      $updated_at    Fecha UTC de actualización.
+	 * @param string|null $provider Código de proveedor que se asignará, si corresponde.
 	 * @return bool
 	 */
 	public static function transition(
@@ -172,20 +173,34 @@ final class PaymentRequestRepository {
 		string $from,
 		string $to,
 		int $revision,
-		string $updated_at
+		string $updated_at,
+		?string $provider = null
 	): bool {
 		global $wpdb;
 
 		$table = self::table_name();
-		$query = $wpdb->prepare(
-			'UPDATE %i SET state = %s, revision = revision + 1, updated_at = %s WHERE id = %d AND state = %s AND revision = %d',
-			$table,
-			$to,
-			$updated_at,
-			$row_id,
-			$from,
-			$revision
-		);
+		if ( null === $provider ) {
+			$query = $wpdb->prepare(
+				'UPDATE %i SET state = %s, revision = revision + 1, updated_at = %s WHERE id = %d AND state = %s AND revision = %d',
+				$table,
+				$to,
+				$updated_at,
+				$row_id,
+				$from,
+				$revision
+			);
+		} else {
+			$query = $wpdb->prepare(
+				'UPDATE %i SET provider = %s, state = %s, revision = revision + 1, updated_at = %s WHERE id = %d AND state = %s AND revision = %d',
+				$table,
+				$provider,
+				$to,
+				$updated_at,
+				$row_id,
+				$from,
+				$revision
+			);
+		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
 		return 1 === $wpdb->query( $query );

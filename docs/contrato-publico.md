@@ -1,6 +1,6 @@
 # Contrato público de `vicunav-pagos`
 
-Estado: vigente para el contrato 0.2.0 y el plugin 0.2.0.
+Estado: vigente para el contrato 0.3.0 y el plugin 0.3.0.
 
 Este documento fija la superficie pública del motor de pagos. Los consumidores usan
 los servicios y hooks descritos aquí; no leen tablas, post meta ni clases marcadas
@@ -63,8 +63,10 @@ actualización genérica del post.
 
 WordPress conserva una representación administrativa de cada solicitud como post del
 CPT. La tabla interna `${prefix}vicu_payment_requests` es la fuente autoritativa de la
-identidad, el monto, el estado, la revisión y el vencimiento. Su schema se identifica
-con la opción `vicu_pagos_db_version`; la versión inicial es `1`.
+identidad, el monto, el proveedor, el estado, la revisión y el vencimiento. La tabla
+interna `${prefix}vicu_payment_manual_submissions` conserva el historial idempotente
+de referencias de comprobante del proveedor manual. El schema conjunto se identifica
+con la opción `vicu_pagos_db_version`; la versión vigente es `2`.
 
 El índice único de la referencia externa y las transacciones InnoDB protegen la
 creación y las transiciones ante procesos concurrentes. Estos detalles son internos y
@@ -78,6 +80,7 @@ Las siguientes claves registradas reflejan la solicitud en el CPT:
 | `vicu_external_id` | `string` | Identificador opaco, máximo 191 caracteres |
 | `vicu_amount_minor` | `integer` | Monto positivo en la unidad menor de la moneda |
 | `vicu_currency` | `string` | Código ISO 4217 de tres letras mayúsculas |
+| `vicu_payment_provider` | `string` | Código del proveedor actual o valor vacío |
 | `vicu_payment_state` | `string` | Estado contractual actual |
 | `vicu_payment_revision` | `integer` | Revisión monotónica, comienza en 1 |
 | `vicu_expires_at` | `string` | Fecha UTC RFC 3339 o valor vacío |
@@ -149,6 +152,7 @@ array(
 	),
 	'amount_minor'       => 1234,
 	'currency'           => 'USD',
+	'provider'           => null,
 	'state'              => 'pendiente',
 	'revision'           => 1,
 	'expires_at'         => '2026-08-14T18:00:00+00:00',
@@ -210,9 +214,10 @@ Los hooks reciben un único argumento array con `payload_version` igual a `1.0.0
 - `vicu_pagos_confirmado` después de transicionar a `confirmado`;
 - `vicu_pagos_rechazado` después de transicionar a `rechazado`;
 - `vicu_pagos_expirado` después de transicionar a `expirado`.
+- `vicu_pagos_comprobante_recibido` después de que el proveedor manual persiste una
+  nueva referencia de comprobante y transiciona a `comprobante_subido`.
 
-No se publica un hook de proveedor o interfaz al entrar en `comprobante_subido`; ese
-estado se conserva para PAGOS-03. El payload tiene esta forma:
+Los eventos generales tienen esta forma:
 
 ```php
 array(
@@ -231,6 +236,84 @@ El hook se dispara únicamente después de confirmar la transacción. Un callbac
 consultar inmediatamente `PaymentRequests::get()` y observar el mismo estado y
 revisión incluidos en el payload.
 
+## Proveedor manual v1
+
+La clase pública `Vicu\Pagos\ManualPaymentProvider` implementa el proveedor con código
+estable `manual`. No representa un banco, una cuenta, una interfaz ni un método de
+entrega. Está deshabilitado por defecto y solo acepta esta configuración:
+
+```php
+$configuration = Vicu\Pagos\ManualPaymentProvider::configure(
+	array( 'enabled' => true )
+);
+
+$configuration = Vicu\Pagos\ManualPaymentProvider::get_configuration();
+```
+
+`enabled` debe ser booleano y no se admiten claves adicionales. Una configuración
+inválida devuelve `vicu_pagos_manual_invalid_configuration` sin cambiar la opción
+persistida.
+
+Un consumidor confiable entrega una referencia opaca de comprobante mediante:
+
+```php
+$result = Vicu\Pagos\ManualPaymentProvider::submit_proof(
+	$request_id,
+	array(
+		'proof_reference' => 'evidence:ORD-42:1',
+		'idempotency_key' => 'order-42-attempt-1',
+	),
+	$request['revision']
+);
+```
+
+Ambos valores son strings no vacíos de máximo 191 caracteres después de normalizar
+texto. No se admiten claves adicionales. Pagos no descarga, interpreta ni presenta
+el recurso referido y nunca devuelve ni publica la clave de idempotencia.
+
+La operación bloquea la solicitud, persiste una entrada histórica y aplica
+atómicamente `pendiente|rechazado -> comprobante_subido`, asignando `provider` a
+`manual` y aumentando la revisión una sola vez. El resultado contiene:
+
+```php
+array(
+	'request'    => array(), // Resultado público completo de la solicitud.
+	'submission' => array(
+		'id'               => 456,
+		'provider'         => 'manual',
+		'proof_reference'  => 'evidence:ORD-42:1',
+		'request_revision' => 2,
+		'submitted_at'     => '2026-08-13T18:02:00+00:00',
+	),
+);
+```
+
+Repetir la misma clave para la misma solicitud y la misma referencia devuelve el
+resultado persistido incluso si `expected_revision` quedó obsoleta, sin aumentar la
+revisión ni repetir el evento. La misma clave con una referencia distinta devuelve
+`vicu_pagos_manual_submission_collision`. Una clave nueva sí valida la revisión y la
+máquina de estados vigentes. Ningún error deja una entrada histórica, cambia estado o
+emite eventos.
+
+`ManualPaymentProvider::get_submission( $request_id, $submission_id )` devuelve la
+forma pública de una entrada o `vicu_pagos_manual_submission_not_found`. Confirmar o
+rechazar una solicitud continúa usando `PaymentRequests::transition()`.
+
+Errores propios:
+
+| Código | Significado |
+| --- | --- |
+| `vicu_pagos_manual_invalid_configuration` | Configuración desconocida o de tipo inválido |
+| `vicu_pagos_manual_provider_disabled` | El proveedor manual está deshabilitado |
+| `vicu_pagos_manual_invalid_submission` | Payload de comprobante inválido |
+| `vicu_pagos_manual_submission_collision` | La clave idempotente ya identifica otra referencia |
+| `vicu_pagos_manual_submission_not_found` | La entrada no existe para la solicitud indicada |
+
+El evento `vicu_pagos_comprobante_recibido` usa `payload_version` `1.0.0`, `event`
+`comprobante_recibido`, la transición persistida, `provider` `manual`, el objeto
+`submission` anterior y la solicitud completa. Se emite una sola vez y únicamente
+después de confirmar la transacción.
+
 ## Capacidades
 
 El CPT usa capacidades dedicadas con base singular `vicu_payment_request` y plural
@@ -243,9 +326,10 @@ capacidades mediante las APIs de roles de WordPress bajo su propia política.
 
 ## Proveedores y límites
 
-PAGOS-02 no implementa proveedor manual, integración Mercantil, checkout, subida de
-comprobantes, presentación ni lógica de pedidos o reservas. PAGOS-03 implementará el
-proveedor manual detrás de esta superficie.
+El proveedor manual v1 no implementa integración Mercantil, cuentas o instrucciones
+bancarias, checkout, archivos, comprobantes visuales, presentación ni lógica de
+pedidos o reservas. La referencia opaca no convierte a pagos en propietario del
+recurso externo.
 
 ## Gestión de cambios
 

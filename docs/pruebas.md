@@ -51,8 +51,10 @@ proceso PHP termine con código cero.
 
 El script `tests/e2e/payment-lifecycle.php` debe ejecutarse contra un sitio LocalWP
 descartable con ambos plugins enlazados y activos. Crea una solicitud efímera, repite
-la creación, transiciona hasta `confirmado`, comprueba los hooks versionados, prueba
-desactivación/reactivación y elimina los datos que creó.
+la creación, habilita el proveedor manual, entrega dos veces la misma referencia con
+la misma clave, confirma la solicitud, comprueba que no se dupliquen historial ni
+hooks, prueba desactivación/reactivación y elimina los datos que creó. La configuración
+manual previa se restaura al finalizar.
 
 ```sh
 export VICU_PAGOS_E2E_WP_LOAD='/ruta/al/sitio/app/public/wp-load.php'

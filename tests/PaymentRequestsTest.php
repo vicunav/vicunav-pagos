@@ -6,6 +6,7 @@
  */
 
 use Vicu\Pagos\EventPublisher;
+use Vicu\Pagos\ManualSubmissionRepository;
 use Vicu\Pagos\PaymentRequestRepository;
 use Vicu\Pagos\PaymentRequests;
 use Vicu\Pagos\PaymentRequestState;
@@ -45,6 +46,7 @@ final class PaymentRequestsTest extends WP_UnitTestCase {
 		$this->assertNotWPError( $second );
 		$this->assertSame( $first, $second );
 		$this->assertSame( 1, $events );
+		$this->assertNull( $first['provider'] );
 		$this->assertSame( 1, $this->stored_request_count() );
 		$this->assertSame( 'vicu_payment_req', get_post_type( $first['id'] ) );
 	}
@@ -302,7 +304,24 @@ final class PaymentRequestsTest extends WP_UnitTestCase {
 		$this->assertSame( 'InnoDB', $status['Engine'] );
 		$this->assertContains( 'reference_hash', $unique );
 		$this->assertContains( 'post_id', $unique );
-		$this->assertSame( '1', get_option( 'vicu_pagos_db_version' ) );
+
+		$submission_table = ManualSubmissionRepository::table_name();
+		$submission_query = $wpdb->prepare( 'SHOW TABLE STATUS WHERE Name = %s', $submission_table );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
+		$submission_status = $wpdb->get_row( $submission_query, ARRAY_A );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$submission_indexes = $wpdb->get_results( "SHOW INDEX FROM {$submission_table}", ARRAY_A );
+		$submission_unique  = array();
+
+		foreach ( $submission_indexes as $index ) {
+			if ( 0 === (int) $index['Non_unique'] ) {
+				$submission_unique[] = $index['Key_name'];
+			}
+		}
+
+		$this->assertSame( 'InnoDB', $submission_status['Engine'] );
+		$this->assertContains( 'request_idempotency', $submission_unique );
+		$this->assertSame( '2', get_option( 'vicu_pagos_db_version' ) );
 	}
 
 	/**

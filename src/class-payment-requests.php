@@ -441,6 +441,7 @@ final class PaymentRequests {
 			),
 			'amount_minor'       => (int) $row['amount_minor'],
 			'currency'           => (string) $row['currency'],
+			'provider'           => self::nullable_string( $row['provider'] ?? null ),
 			'state'              => (string) $row['state'],
 			'revision'           => (int) $row['revision'],
 			'expires_at'         => self::to_public_datetime( $row['expires_at'] ),

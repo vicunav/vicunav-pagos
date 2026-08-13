@@ -29,7 +29,7 @@ final class Installer {
 	}
 
 	/**
-	 * Crea la tabla InnoDB y guarda su versión solo si existe.
+	 * Crea las tablas InnoDB y guarda su versión solo si ambas existen.
 	 *
 	 * @return void
 	 */
@@ -38,9 +38,10 @@ final class Installer {
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-		$table           = PaymentRequestRepository::table_name();
-		$charset_collate = $wpdb->get_charset_collate();
-		$sql             = "CREATE TABLE {$table} (
+		$request_table    = PaymentRequestRepository::table_name();
+		$submission_table = ManualSubmissionRepository::table_name();
+		$charset_collate  = $wpdb->get_charset_collate();
+		$request_sql      = "CREATE TABLE {$request_table} (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			post_id bigint(20) unsigned DEFAULT NULL,
 			reference_hash char(64) NOT NULL,
@@ -48,6 +49,7 @@ final class Installer {
 			external_id varchar(191) NOT NULL,
 			amount_minor bigint(20) unsigned NOT NULL,
 			currency char(3) NOT NULL,
+			provider varchar(32) DEFAULT NULL,
 			state varchar(32) NOT NULL,
 			revision bigint(20) unsigned NOT NULL DEFAULT 1,
 			expires_at datetime DEFAULT NULL,
@@ -59,12 +61,30 @@ final class Installer {
 			KEY due_requests (state, expires_at)
 		) ENGINE=InnoDB {$charset_collate};";
 
-		dbDelta( $sql );
+		$submission_sql = "CREATE TABLE {$submission_table} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			request_id bigint(20) unsigned NOT NULL,
+			idempotency_hash char(64) NOT NULL,
+			proof_reference varchar(191) NOT NULL,
+			request_revision bigint(20) unsigned NOT NULL,
+			created_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY request_idempotency (request_id, idempotency_hash),
+			KEY request_history (request_id, id)
+		) ENGINE=InnoDB {$charset_collate};";
 
-		$query = $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) );
+		dbDelta( $request_sql );
+		dbDelta( $submission_sql );
+
+		$request_query    = $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $request_table ) );
+		$submission_query = $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $submission_table ) );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
-		if ( $table === $wpdb->get_var( $query ) ) {
+		$request_exists = $request_table === $wpdb->get_var( $request_query );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
+		$submission_exists = $submission_table === $wpdb->get_var( $submission_query );
+
+		if ( $request_exists && $submission_exists ) {
 			update_option( self::OPTION_DB_VERSION, VICU_PAGOS_DB_VERSION, false );
 		}
 	}
