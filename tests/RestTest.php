@@ -26,6 +26,7 @@ final class RestTest extends WP_UnitTestCase {
 	 */
 	public function set_up(): void {
 		parent::set_up();
+		vicu_pagos_reset_requests();
 
 		global $wp_rest_server;
 
@@ -96,5 +97,44 @@ final class RestTest extends WP_UnitTestCase {
 		$this->assertSame( 201, $response->get_status(), wp_json_encode( $response->get_data() ) );
 		$this->assertSame( 'vicu_order', $response->get_data()['meta'][ PaymentRequest::META_EXTERNAL_TYPE ] );
 		$this->assertSame( 1234, $response->get_data()['meta'][ PaymentRequest::META_AMOUNT_MINOR ] );
+		$this->assertSame( 'pendiente', $response->get_data()['meta'][ PaymentRequest::META_STATE ] );
+		$this->assertSame( 1, $response->get_data()['meta'][ PaymentRequest::META_REVISION ] );
+	}
+
+	/**
+	 * Verifica que REST no pueda evadir las transiciones del servicio.
+	 *
+	 * @return void
+	 */
+	public function test_rejects_contract_meta_updates(): void {
+		Capabilities::grant_to_administrator();
+		$user_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $user_id );
+
+		$create = new WP_REST_Request( 'POST', '/wp/v2/vicu-payment-requests' );
+		$create->set_body_params(
+			array(
+				'meta' => array(
+					PaymentRequest::META_EXTERNAL_TYPE => 'vicu_order',
+					PaymentRequest::META_EXTERNAL_ID   => 'ORD-REST-LOCK',
+					PaymentRequest::META_AMOUNT_MINOR  => 1234,
+					PaymentRequest::META_CURRENCY      => 'USD',
+				),
+			)
+		);
+
+		$created = $this->server->dispatch( $create );
+		$post_id = $created->get_data()['id'];
+		$update  = new WP_REST_Request( 'POST', '/wp/v2/vicu-payment-requests/' . $post_id );
+		$update->set_body_params(
+			array(
+				'meta' => array( PaymentRequest::META_STATE => 'confirmado' ),
+			)
+		);
+
+		$response = $this->server->dispatch( $update );
+
+		$this->assertSame( 409, $response->get_status() );
+		$this->assertSame( 'vicu_pagos_immutable_meta', $response->get_data()['code'] );
 	}
 }

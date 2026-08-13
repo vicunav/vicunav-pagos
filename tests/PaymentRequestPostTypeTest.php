@@ -56,7 +56,11 @@ final class PaymentRequestPostTypeTest extends WP_UnitTestCase {
 		$this->assertArrayHasKey( PaymentRequest::META_EXTERNAL_ID, $registered );
 		$this->assertArrayHasKey( PaymentRequest::META_AMOUNT_MINOR, $registered );
 		$this->assertArrayHasKey( PaymentRequest::META_CURRENCY, $registered );
+		$this->assertArrayHasKey( PaymentRequest::META_STATE, $registered );
+		$this->assertArrayHasKey( PaymentRequest::META_REVISION, $registered );
+		$this->assertArrayHasKey( PaymentRequest::META_EXPIRES_AT, $registered );
 		$this->assertSame( 'integer', $registered[ PaymentRequest::META_AMOUNT_MINOR ]['type'] );
+		$this->assertSame( 'integer', $registered[ PaymentRequest::META_REVISION ]['type'] );
 	}
 
 	/**

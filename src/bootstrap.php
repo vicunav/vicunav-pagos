@@ -65,7 +65,20 @@ function to_kebab_case( string $value ): string {
  * @return void
  */
 function activate(): void {
+	Installer::install();
 	Capabilities::grant_to_administrator();
+	ExpirationScheduler::schedule();
+}
+
+/**
+ * Retira la recurrencia sin borrar solicitudes al desactivar.
+ *
+ * @internal
+ *
+ * @return void
+ */
+function deactivate(): void {
+	ExpirationScheduler::unschedule();
 }
 
 /**
@@ -81,12 +94,16 @@ function bootstrap(): void {
 		return;
 	}
 
+	Installer::maybe_upgrade();
+
 	$payment_request = new PaymentRequest();
 	$payment_request->register_hooks();
 	add_action( 'init', array( PaymentRequest::class, 'register_meta' ), 20 );
+	add_action( 'before_delete_post', __NAMESPACE__ . '\delete_payment_request_storage', 10, 2 );
+	ExpirationScheduler::register();
 
 	/**
-	 * Se ejecuta cuando la superficie inicial de Vicunav Pagos está disponible.
+	 * Se ejecuta cuando la superficie pública de Vicunav Pagos está disponible.
 	 *
 	 * @since 0.1.0
 	 *
@@ -94,6 +111,21 @@ function bootstrap(): void {
 	 * @param string $contract_version Versión del contrato público.
 	 */
 	do_action( 'vicu_pagos_loaded', VICU_PAGOS_VERSION, VICU_PAGOS_CONTRACT_VERSION );
+}
+
+/**
+ * Mantiene sincronizada la persistencia al eliminar el post administrativo.
+ *
+ * @internal
+ *
+ * @param int      $post_id ID del post eliminado.
+ * @param \WP_Post $post    Post que WordPress eliminará.
+ * @return void
+ */
+function delete_payment_request_storage( int $post_id, \WP_Post $post ): void {
+	if ( PaymentRequest::SLUG === $post->post_type ) {
+		PaymentRequestRepository::delete_by_post_id( $post_id );
+	}
 }
 
 /**

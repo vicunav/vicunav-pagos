@@ -27,3 +27,31 @@ tests_add_filter(
 );
 
 require $vicu_pagos_tests_dir . '/includes/bootstrap.php';
+
+/**
+ * Limpia únicamente la tabla interna entre pruebas que ejercen el servicio.
+ *
+ * @return void
+ */
+function vicu_pagos_reset_requests(): void {
+	global $wpdb;
+
+	$post_ids = get_posts(
+		array(
+			'post_type'      => 'vicu_payment_req',
+			'post_status'    => 'any',
+			'fields'         => 'ids',
+			'posts_per_page' => -1,
+		)
+	);
+
+	foreach ( $post_ids as $post_id ) {
+		wp_delete_post( $post_id, true );
+	}
+
+	$table = \Vicu\Pagos\PaymentRequestRepository::table_name();
+
+	// La tabla pertenece a la base aislada y su nombre proviene del prefijo de pruebas.
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	$wpdb->query( "TRUNCATE TABLE {$table}" );
+}

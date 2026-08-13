@@ -11,7 +11,7 @@ es ofrecer una frontera reutilizable para los verticales del ecosistema.
 - CPT `vicu_payment_req` y su persistencia.
 - Referencias externas polimórficas.
 - Estados y transiciones del dominio de pagos.
-- Idempotencia y expiración cuando se implementen sus fases.
+- Idempotencia, concurrencia y expiración del ciclo de vida.
 - Proveedores de pago detrás de contratos explícitos.
 - Hooks públicos para que los verticales reaccionen a resultados.
 - Capacidades y REST propios del dominio.
@@ -29,8 +29,9 @@ Este repositorio no es propietario de:
 Los verticales entregan una referencia externa y reaccionan a eventos públicos. Nunca
 leen post meta, tablas o clases internas de pagos.
 
-## Estado de PAGOS-01
+## Estado de PAGOS-02
 
-PAGOS-01 implementa el bootstrap, el CPT, las capacidades y sus metadatos básicos. El
-contrato reserva el vocabulario de estados y eventos, pero la máquina de estados, la
-idempotencia operativa y el proveedor manual permanecen fuera de este Issue.
+PAGOS-02 implementa el bootstrap, el CPT administrativo, la persistencia versionada,
+las capabilities, la creación idempotente, la máquina de estados atómica, la
+expiración repetible y los eventos públicos versionados. El proveedor manual, el
+checkout y cualquier presentación permanecen fuera de esta fase.

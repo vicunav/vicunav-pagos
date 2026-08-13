@@ -8,6 +8,7 @@
 namespace Vicu\Pagos\PostTypes;
 
 use Vicu\Core\PostType;
+use Vicu\Pagos\PaymentRequestState;
 use Vicu\Pagos\Rest\PaymentRequestController;
 
 /**
@@ -23,6 +24,12 @@ final class PaymentRequest extends PostType {
 	public const META_AMOUNT_MINOR = 'vicu_amount_minor';
 
 	public const META_CURRENCY = 'vicu_currency';
+
+	public const META_STATE = 'vicu_payment_state';
+
+	public const META_REVISION = 'vicu_payment_revision';
+
+	public const META_EXPIRES_AT = 'vicu_expires_at';
 
 	/**
 	 * Devuelve el slug contractual del CPT.
@@ -131,6 +138,62 @@ final class PaymentRequest extends PostType {
 					'pattern'   => '^[A-Z]{3}$',
 				)
 			)
+		);
+
+		register_post_meta(
+			self::SLUG,
+			self::META_STATE,
+			self::meta_args(
+				'string',
+				'sanitize_key',
+				array(
+					'type' => 'string',
+					'enum' => PaymentRequestState::all(),
+				)
+			)
+		);
+
+		register_post_meta(
+			self::SLUG,
+			self::META_REVISION,
+			self::meta_args(
+				'integer',
+				'absint',
+				array(
+					'type'    => 'integer',
+					'minimum' => 1,
+				)
+			)
+		);
+
+		register_post_meta(
+			self::SLUG,
+			self::META_EXPIRES_AT,
+			self::meta_args(
+				'string',
+				'sanitize_text_field',
+				array(
+					'type'   => 'string',
+					'format' => 'date-time',
+				)
+			)
+		);
+	}
+
+	/**
+	 * Devuelve las claves que solo puede mutar el servicio de dominio.
+	 *
+	 * @return string[]
+	 */
+	public static function contract_meta_keys(): array {
+		return array(
+			self::META_EXTERNAL_TYPE,
+			self::META_EXTERNAL_ID,
+			self::META_AMOUNT_MINOR,
+			self::META_CURRENCY,
+			self::META_STATE,
+			self::META_REVISION,
+			self::META_EXPIRES_AT,
 		);
 	}
 
