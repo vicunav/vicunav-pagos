@@ -17,9 +17,9 @@ final class BootstrapTest extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_versions_match_current_contract(): void {
-		$this->assertSame( '0.2.0', VICU_PAGOS_VERSION );
-		$this->assertSame( '0.2.0', VICU_PAGOS_CONTRACT_VERSION );
-		$this->assertSame( '1', VICU_PAGOS_DB_VERSION );
+		$this->assertSame( '0.3.0', VICU_PAGOS_VERSION );
+		$this->assertSame( '0.3.0', VICU_PAGOS_CONTRACT_VERSION );
+		$this->assertSame( '2', VICU_PAGOS_DB_VERSION );
 		$this->assertSame( 1, did_action( 'vicu_pagos_loaded' ) );
 	}
 

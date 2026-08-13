@@ -4,12 +4,12 @@ Independent payment engine for the Vicunav WordPress ecosystem.
 
 ## Status
 
-Version 0.2.0 provides an installable payment lifecycle with idempotent creation,
-explicit reference-collision errors, concurrency-safe state transitions, repeatable
-expiration, and versioned public events.
+Version 0.3.0 provides an installable payment lifecycle plus a minimal manual payment
+provider. Manual proof references are persisted atomically with idempotency,
+concurrency protection, explicit collision errors, and a versioned post-commit event.
 
-The manual provider, banking integrations, checkout, proof-of-payment UI, and
-restaurant or reservation logic remain intentionally out of scope.
+Banking integrations, checkout, file handling, proof-of-payment UI, and restaurant or
+reservation logic remain intentionally out of scope.
 
 ## Responsibilities
 
@@ -40,8 +40,14 @@ Install both plugins and activate **Vicunav Plugin Core** before **Vicunav Pagos
   optional expected revision.
 - `Vicu\Pagos\PaymentRequests::expire()` and `expire_due()` provide safe, repeatable
   expiration.
-- Creation, confirmation, rejection, and expiration hooks publish payload schema
-  `1.0.0` only after persistence commits.
+- `Vicu\Pagos\ManualPaymentProvider::configure()` enables or disables the manual
+  provider through its complete v1 configuration.
+- `Vicu\Pagos\ManualPaymentProvider::submit_proof()` stores an opaque proof reference
+  and transitions the request atomically. Exact retries return the original result.
+- `Vicu\Pagos\ManualPaymentProvider::get_submission()` returns a stable public result
+  without exposing the idempotency key or internal history table.
+- Lifecycle and manual proof hooks publish payload schema `1.0.0` only after
+  persistence commits.
 
 The private `vicu_payment_req` post type and
 `/wp-json/wp/v2/vicu-payment-requests` collection remain protected administrative
@@ -52,7 +58,8 @@ interfaces. Business plugins use the public PHP service and events instead.
 - It does not contain presentation, templates, patterns, or theme styling.
 - It does not contain order, reservation, room, menu, or inventory logic.
 - It does not read another plugin's database or post metadata.
-- It does not require ACF or implement payment-provider APIs in this phase.
+- It does not require ACF or implement banking APIs, account configuration, proof
+  files, or provider-specific presentation.
 
 ## Development
 

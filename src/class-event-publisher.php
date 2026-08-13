@@ -48,6 +48,38 @@ final class EventPublisher {
 	}
 
 	/**
+	 * Emite una entrega manual después de persistir solicitud e historial.
+	 *
+	 * @param string               $from       Estado anterior.
+	 * @param array<string, mixed> $request    Solicitud pública persistida.
+	 * @param array<string, mixed> $submission Entrega pública persistida.
+	 * @return void
+	 */
+	public static function manual_proof_received( string $from, array $request, array $submission ): void {
+		$payload = array(
+			'payload_version' => self::PAYLOAD_VERSION,
+			'event'           => 'comprobante_recibido',
+			'occurred_at'     => $submission['submitted_at'],
+			'transition'      => array(
+				'from' => $from,
+				'to'   => PaymentRequestState::PROOF_UPLOADED,
+			),
+			'provider'        => ManualPaymentProvider::CODE,
+			'submission'      => $submission,
+			'request'         => $request,
+		);
+
+		/**
+		 * Publica una referencia manual persistida.
+		 *
+		 * @since 0.3.0
+		 *
+		 * @param array<string, mixed> $payload Payload contractual 1.0.0.
+		 */
+		do_action( 'vicu_pagos_comprobante_recibido', $payload );
+	}
+
+	/**
 	 * Publica un único argumento versionado.
 	 *
 	 * @param string               $hook    Nombre del hook.
