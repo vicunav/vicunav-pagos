@@ -50,7 +50,7 @@ final class ManualPaymentProvider {
 	public static function get_configuration(): array {
 		return array(
 			'provider' => self::CODE,
-			'enabled'  => true === get_option( self::OPTION_ENABLED, false ),
+			'enabled'  => rest_sanitize_boolean( get_option( self::OPTION_ENABLED, false ) ),
 		);
 	}
 

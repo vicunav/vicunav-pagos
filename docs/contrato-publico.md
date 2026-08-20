@@ -1,6 +1,6 @@
 # Contrato público de `vicunav-pagos`
 
-Estado: vigente para el contrato 0.3.0 y el plugin 0.3.0.
+Estado: vigente para el contrato 0.3.0 y el plugin 0.3.1.
 
 Este documento fija la superficie pública del motor de pagos. Los consumidores usan
 los servicios y hooks descritos aquí; no leen tablas, post meta ni clases marcadas

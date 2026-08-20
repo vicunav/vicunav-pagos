@@ -4,7 +4,7 @@ Independent payment engine for the Vicunav WordPress ecosystem.
 
 ## Status
 
-Version 0.3.0 provides an installable payment lifecycle plus a minimal manual payment
+Version 0.3.1 provides an installable payment lifecycle plus a minimal manual payment
 provider. Manual proof references are persisted atomically with idempotency,
 concurrency protection, explicit collision errors, and a versioned post-commit event.
 
