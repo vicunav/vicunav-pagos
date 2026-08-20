@@ -58,6 +58,20 @@ final class ManualPaymentProviderTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * La representación escalar de wp_options conserva el estado entre solicitudes.
+	 *
+	 * @return void
+	 */
+	public function test_enabled_configuration_survives_option_cache_boundary(): void {
+		$this->assertTrue( ManualPaymentProvider::configure( array( 'enabled' => true ) )['enabled'] );
+
+		wp_cache_delete( 'vicu_pagos_manual_enabled', 'options' );
+
+		$this->assertSame( '1', get_option( 'vicu_pagos_manual_enabled' ) );
+		$this->assertTrue( ManualPaymentProvider::get_configuration()['enabled'] );
+	}
+
+	/**
 	 * Un proveedor deshabilitado y un payload inválido no dejan efectos.
 	 *
 	 * @return void
